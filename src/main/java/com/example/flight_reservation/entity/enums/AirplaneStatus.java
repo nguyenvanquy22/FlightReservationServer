@@ -1,4 +1,4 @@
-package com.example.flight_reservation.entity.Enums;
+package com.example.flight_reservation.entity.enums;
 
 public enum AirplaneStatus {
     ACTIVE,

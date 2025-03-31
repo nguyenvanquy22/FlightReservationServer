@@ -1,6 +1,6 @@
 package com.example.flight_reservation.entity;
 
-import com.example.flight_reservation.entity.Enums.UserRole;
+import com.example.flight_reservation.entity.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 

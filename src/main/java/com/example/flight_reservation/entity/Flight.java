@@ -2,7 +2,7 @@ package com.example.flight_reservation.entity;
 
 import java.time.LocalDateTime;
 
-import com.example.flight_reservation.entity.Enums.FlightStatus;
+import com.example.flight_reservation.entity.enums.FlightStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 

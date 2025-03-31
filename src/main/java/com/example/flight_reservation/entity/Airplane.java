@@ -1,6 +1,6 @@
 package com.example.flight_reservation.entity;
 
-import com.example.flight_reservation.entity.Enums.AirplaneStatus;
+import com.example.flight_reservation.entity.enums.AirplaneStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 

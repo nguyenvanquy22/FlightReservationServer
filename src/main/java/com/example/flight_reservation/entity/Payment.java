@@ -3,7 +3,7 @@ package com.example.flight_reservation.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.example.flight_reservation.entity.Enums.PaymentStatus;
+import com.example.flight_reservation.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 
