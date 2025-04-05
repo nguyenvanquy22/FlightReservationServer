@@ -1,6 +1,5 @@
 package com.example.flight_reservation.dto.response;
 
-import com.example.flight_reservation.entity.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthResponse {
-    private String token;
-    private UserResponse user;
-    private UserRole userRole;
+public class ApiResponse<T> {
+    private boolean success;
+    private String message;
+    private T data;
 }
