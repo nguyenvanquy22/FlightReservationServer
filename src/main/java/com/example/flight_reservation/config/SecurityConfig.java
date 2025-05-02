@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -29,32 +30,41 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
-    private final JwtFilter jwtFilter;
-
-    public SecurityConfig(UserDetailsService userDetailsService, JwtFilter jwtFilter) {
-        this.userDetailsService = userDetailsService;
-        this.jwtFilter = jwtFilter;
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         return http
-                .cors().and()
+//                .cors(cors -> cors.configurationSource(request -> {
+//                    CorsConfiguration config = new CorsConfiguration();
+//                    config.applyPermitDefaultValues();
+//                    return config;
+//                }))
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOriginPatterns(List.of("*"));
+                    config.setAllowedMethods(List.of("*"));
+                    config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
+                    return config;
+                }))
                 .csrf(AbstractHttpConfigurer::disable).
                 authorizeHttpRequests(request -> request
-                        .requestMatchers("login", "register","/api/users/add").permitAll()
-                        .requestMatchers(HttpMethod.PUT,"/api/users/{id}").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/api/aircraft/","/api/airlines/","/api/airports/","/api/bookings/","/api/flights/","/api/users/").hasAnyRole("CUSTOMER","ADMIN")
-                        .requestMatchers(HttpMethod.POST,"api/bookings/add","/api/users/add").hasRole("CUSTOMER")
-                        .requestMatchers(HttpMethod.POST).hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE).hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT).hasRole("ADMIN")
-                        .anyRequest().authenticated()).
+                                .anyRequest().permitAll()
+//                        .requestMatchers("login", "register","/api/users/add").permitAll()
+//                        .requestMatchers(HttpMethod.PUT,"/api/users/{id}").permitAll()
+//                        .requestMatchers(HttpMethod.GET,"/api/aircraft/","/api/airlines/","/api/airports/","/api/bookings/","/api/flights/","/api/users/").hasAnyRole("CUSTOMER", "ADMIN")
+//                        .requestMatchers(HttpMethod.POST,"api/bookings/add","/api/users/add").hasRole("CUSTOMER")
+//                        .requestMatchers(HttpMethod.POST).hasRole("ADMIN")
+//                        .requestMatchers(HttpMethod.DELETE).hasRole("ADMIN")
+//                        .requestMatchers(HttpMethod.PUT).hasRole("ADMIN")
+//                        .anyRequest().authenticated()
+                ).
                 httpBasic(Customizer.withDefaults()).
                 sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
     @Bean
@@ -68,20 +78,5 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setPasswordEncoder(new BCryptPasswordEncoder(12));
-        provider.setUserDetailsService(userDetailsService);
-
-
-        return provider;
-    }
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-
     }
 }

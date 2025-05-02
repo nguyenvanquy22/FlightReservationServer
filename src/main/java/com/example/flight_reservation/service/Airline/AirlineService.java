@@ -67,7 +67,7 @@ public class AirlineService {
 
     // Search (tìm kiếm theo tên, không phân biệt chữ hoa chữ thường)
     public List<AirlineResponse> searchAirlines(String keyword) {
-        return airlineRepository.findByAirlineNameContainingIgnoreCase(keyword)
+        return airlineRepository.findByNameContainingIgnoreCase(keyword)
                 .stream()
                 .map(airlineMapper::toResponse)
                 .collect(Collectors.toList());

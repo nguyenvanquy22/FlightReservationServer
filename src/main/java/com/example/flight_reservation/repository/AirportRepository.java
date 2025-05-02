@@ -9,5 +9,5 @@ import java.util.List;
 
 @Repository
 public interface AirportRepository extends JpaRepository<Airport, Long> {
-    List<Airport> findByAirportNameContainingIgnoreCase(String keyword);
+    List<Airport> findByNameContainingIgnoreCase(String keyword);
 }

@@ -4,6 +4,9 @@ import com.example.flight_reservation.entity.enums.AirplaneStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "airplanes")
 @Data
@@ -29,5 +32,8 @@ public class Airplane {
   @Enumerated(EnumType.STRING)
   @Column(name = "status")
   private AirplaneStatus status = AirplaneStatus.ACTIVE;
+
+  @OneToMany(mappedBy = "airplane", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<SeatClassAirplane> seatClassAirplanes = new ArrayList<>();
 }
 

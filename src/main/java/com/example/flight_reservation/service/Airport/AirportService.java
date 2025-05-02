@@ -69,7 +69,7 @@ public class AirportService {
 
     // Search Airports (ví dụ: tìm kiếm theo tên sân bay hoặc thành phố)
     public List<AirportResponse> searchAirports(String keyword) {
-        return airportRepository.findByAirportNameContainingIgnoreCase(keyword)
+        return airportRepository.findByNameContainingIgnoreCase(keyword)
                 .stream()
                 .map(airportMapper::toResponse)
                 .collect(Collectors.toList());

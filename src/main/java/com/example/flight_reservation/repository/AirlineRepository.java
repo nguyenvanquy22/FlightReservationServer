@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface AirlineRepository extends JpaRepository<Airline, Long> {
-    List<Airline> findByAirlineNameContainingIgnoreCase(String keyword);
+    List<Airline> findByNameContainingIgnoreCase(String keyword);
 }
