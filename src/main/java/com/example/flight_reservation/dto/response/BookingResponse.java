@@ -12,5 +12,5 @@ public class BookingResponse {
   private LocalDateTime bookingDate;
   private BookingStatus status;
   private List<TicketResponse> tickets;
-  private List<PaymentResponse> payments;
+  private PaymentResponse payment;
 }

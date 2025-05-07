@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class TicketResponse {
     private Long id;
-    private SeatClassAirplaneFlightResponse seatClassAirplaneFlight;
+    private Long seatClassAirplaneFlightId;
     private PassengerResponse passenger;
     private Long bookingId;
     private String seatNumber;
