@@ -10,7 +10,6 @@ public class AirplaneRequest {
   private Long airlineId;
   private String model;
   private String registrationCode;
-  private Integer capacity;
   private AirplaneStatus status;
   private List<SeatClassAirplaneRequest> seatClassConfigs;
 }

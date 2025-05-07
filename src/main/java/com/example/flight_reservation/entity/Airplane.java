@@ -26,9 +26,6 @@ public class Airplane {
   @Column(name = "registration_code", length = 20)
   private String registrationCode;
 
-  @Column(name = "capacity")
-  private Integer capacity;
-
   @Enumerated(EnumType.STRING)
   @Column(name = "status")
   private AirplaneStatus status = AirplaneStatus.ACTIVE;

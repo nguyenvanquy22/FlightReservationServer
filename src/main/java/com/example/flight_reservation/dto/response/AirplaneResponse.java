@@ -11,7 +11,6 @@ public class AirplaneResponse {
   private AirlineResponse airline;
   private String model;
   private String registrationCode;
-  private Integer capacity;
   private AirplaneStatus status;
   private List<SeatClassAirplaneResponse> seatClassAirplanes;
 }

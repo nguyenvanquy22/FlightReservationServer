@@ -1,18 +1,26 @@
 package com.example.flight_reservation.service.Airplane;
 
 import com.example.flight_reservation.dto.request.AirplaneRequest;
+import com.example.flight_reservation.dto.request.SeatClassAirplaneRequest;
 import com.example.flight_reservation.dto.response.AirplaneResponse;
+import com.example.flight_reservation.entity.Airline;
 import com.example.flight_reservation.entity.Airplane;
+import com.example.flight_reservation.entity.SeatClass;
 import com.example.flight_reservation.entity.SeatClassAirplane;
 import com.example.flight_reservation.exception.ResourceNotFoundException;
 import com.example.flight_reservation.mapper.AirplaneMapper;
 import com.example.flight_reservation.dto.response.ApiResponse;
 import com.example.flight_reservation.mapper.SeatClassAirplaneMapper;
+import com.example.flight_reservation.repository.AirlineRepository;
 import com.example.flight_reservation.repository.AirplaneRepository;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.example.flight_reservation.repository.SeatClassAirplaneRepository;
+import com.example.flight_reservation.repository.SeatClassRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,7 +32,13 @@ public class AirplaneService {
     private AirplaneRepository airplaneRepository;
 
     @Autowired
+    private AirlineRepository airlineRepository;
+
+    @Autowired
     private SeatClassAirplaneRepository seatClassAirplaneRepository;
+
+    @Autowired
+    private SeatClassRepository seatClassRepository;
 
     @Autowired
     private SeatClassAirplaneMapper seatClassAirplaneMapper;
@@ -36,13 +50,22 @@ public class AirplaneService {
     public AirplaneResponse createAirplane(AirplaneRequest request) {
         // 1. Lưu Airplane
         Airplane airplane = airplaneMapper.toEntity(request);
+
+        Airline airline = airlineRepository.findById(request.getAirlineId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Airline not found with id: " + request.getAirlineId()));
+        airplane.setAirline(airline);
+
         Airplane saved = airplaneRepository.save(airplane);
 
         // 2. Lưu danh sách SeatClassAirplane
         List<SeatClassAirplane> configs = request.getSeatClassConfigs().stream()
                 .map(dto -> {
+                    SeatClass seatclass = seatClassRepository.findById(dto.getSeatClassId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Seat class not found: " + dto.getSeatClassId()));
                     SeatClassAirplane ent = seatClassAirplaneMapper.toEntity(dto);
                     ent.setAirplane(saved);
+                    ent.setSeatClass(seatclass);
                     return seatClassAirplaneRepository.save(ent);
                 })
                 .collect(Collectors.toList());
@@ -59,26 +82,39 @@ public class AirplaneService {
         Airplane airplane = airplaneRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Airplane not found with id: " + id));
 
-        // Cập nhật các trường cơ bản
+        // 1. Cập nhật các trường cơ bản
         airplane.setModel(request.getModel());
         airplane.setRegistrationCode(request.getRegistrationCode());
-        airplane.setCapacity(request.getCapacity());
         airplane.setStatus(request.getStatus());
+        if (request.getAirlineId() != null) {
+            Airline airline = airlineRepository.findById(request.getAirlineId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Airline not found with id: " + request.getAirlineId()));
+            airplane.setAirline(airline);
+        }
+
+        // 2. Xóa toàn bộ cấu hình cũ bằng cách clear() trên collection
+        airplane.getSeatClassAirplanes().clear();
+
+        // 3. Thêm lại các cấu hình mới
+        if (request.getSeatClassConfigs() != null) {
+            for (SeatClassAirplaneRequest dto : request.getSeatClassConfigs()) {
+                SeatClass seatClass = seatClassRepository.findById(dto.getSeatClassId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Seat class not found with id: " + dto.getSeatClassId()));
+
+                SeatClassAirplane ent = seatClassAirplaneMapper.toEntity(dto);
+                ent.setAirplane(airplane);
+                ent.setSeatClass(seatClass);
+
+                // Thêm trực tiếp vào collection managed
+                airplane.getSeatClassAirplanes().add(ent);
+            }
+        }
+
+        // 4. Save chính đối tượng Airplane; do cascade, các child sẽ được persist và orphan được delete
         Airplane updated = airplaneRepository.save(airplane);
 
-        // Xóa hết cấu hình cũ
-        seatClassAirplaneRepository.deleteByAirplane(updated);
-
-        // Thêm lại cấu hình mới
-        List<SeatClassAirplane> configs = request.getSeatClassConfigs().stream()
-                .map(dto -> {
-                    SeatClassAirplane ent = seatClassAirplaneMapper.toEntity(dto);
-                    ent.setAirplane(updated);
-                    return seatClassAirplaneRepository.save(ent);
-                })
-                .collect(Collectors.toList());
-
-        updated.setSeatClassAirplanes(configs);
+        // 5. Chuyển về DTO
         return airplaneMapper.toResponse(updated);
     }
 

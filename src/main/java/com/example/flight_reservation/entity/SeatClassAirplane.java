@@ -25,8 +25,5 @@ public class SeatClassAirplane {
 
     @Column(name = "column_count", nullable = false)
     private Integer columnCount;
-
-    @Column(name = "seat_quantity")
-    private Integer seatQuantity;
 }
 

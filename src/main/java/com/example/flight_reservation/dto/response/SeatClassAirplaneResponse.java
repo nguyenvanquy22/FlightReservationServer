@@ -10,5 +10,4 @@ public class SeatClassAirplaneResponse {
     private Long airplaneId;
     private Integer rowCount;
     private Integer columnCount;
-    private Integer seatQuantity;
 }
