@@ -4,20 +4,17 @@ import com.example.flight_reservation.dto.request.FlightRequest;
 import com.example.flight_reservation.dto.response.FlightResponse;
 import com.example.flight_reservation.dto.response.SeatClassAirplaneFlightResponse;
 import com.example.flight_reservation.dto.response.TransitResponse;
-import com.example.flight_reservation.entity.Flight;
-import com.example.flight_reservation.entity.SeatClassAirplaneFlight;
-import com.example.flight_reservation.entity.Transit;
+import com.example.flight_reservation.entity.*;
 import com.example.flight_reservation.exception.ResourceNotFoundException;
 import com.example.flight_reservation.mapper.FlightMapper;
 import com.example.flight_reservation.dto.response.ApiResponse;
 import com.example.flight_reservation.mapper.SeatClassAirplaneFlightMapper;
 import com.example.flight_reservation.mapper.TransitMapper;
-import com.example.flight_reservation.repository.FlightRepository;
+import com.example.flight_reservation.repository.*;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.example.flight_reservation.repository.SeatClassAirplaneFlightRepository;
-import com.example.flight_reservation.repository.TransitRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,6 +32,9 @@ public class FlightService {
     private SeatClassAirplaneFlightRepository seatCAFRepository;
 
     @Autowired
+    private SeatClassAirplaneRepository seatClassAirplaneRepository;
+
+    @Autowired
     private FlightMapper flightMapper;
 
     @Autowired
@@ -43,82 +43,146 @@ public class FlightService {
     @Autowired
     private SeatClassAirplaneFlightMapper seatClassAirplaneFlightMapper;
 
+    @Autowired private AirplaneRepository airplaneRepository;
+    @Autowired private AirportRepository airportRepository;
+
     @Transactional
     public FlightResponse createFlight(FlightRequest request) {
-        // 1. Map và lưu Flight chính
+        // 1. Map cơ bản
         Flight flight = flightMapper.toEntity(request);
-        Flight savedFlight = flightRepository.save(flight);
 
-        // 2. Lưu các Transit
-        List<TransitResponse> savedTransits = request.getTransits().stream()
-                .map(tr -> {
-                    Transit entity = transitMapper.toEntity(tr);
-                    entity.setFlight(savedFlight);
-                    return transitMapper.toResponse(transitRepository.save(entity));
+        // 2. Gán quan hệ
+        flight.setAirplane(
+                airplaneRepository.findById(request.getAirplaneId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Airplane not found: " + request.getAirplaneId()))
+        );
+        flight.setOriginAirport(
+                airportRepository.findById(request.getOriginAirportId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Airport not found: " + request.getOriginAirportId()))
+        );
+        flight.setDestinationAirport(
+                airportRepository.findById(request.getDestinationAirportId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Airport not found: " + request.getDestinationAirportId()))
+        );
+
+        // 3. Save chính để có ID
+        Flight saved = flightRepository.save(flight);
+
+        // 4. Nested: Transits
+        List<TransitResponse> transits = request.getTransits().stream()
+                .map(trDto -> {
+                    // map dto → entity
+                    Transit tr = transitMapper.toEntity(trDto);
+
+                    // gán quan hệ bắt buộc
+                    tr.setFlight(saved);
+
+                    Airport ap = airportRepository.findById(trDto.getAirportId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Airport not found: " + trDto.getAirportId()));
+                    tr.setTransitAirport(ap);
+
+                    // save & map response
+                    Transit savedTr = transitRepository.save(tr);
+                    return transitMapper.toResponse(savedTr);
                 })
                 .collect(Collectors.toList());
 
-        // 3. Lưu các SeatClassAirplaneFlight
-        List<SeatClassAirplaneFlightResponse> savedSeatOptions = request.getSeatOptions().stream()
-                .map(opt -> {
-                    SeatClassAirplaneFlight entity = seatClassAirplaneFlightMapper.toEntity(opt);
-                    entity.setFlight(savedFlight);
-                    return seatClassAirplaneFlightMapper.toResponse(seatCAFRepository.save(entity));
+        // 5. Nested: Seat options
+        List<SeatClassAirplaneFlightResponse> seatOpts = request.getSeatOptions().stream()
+                .map(optDto -> {
+                    SeatClassAirplaneFlight scaf = seatClassAirplaneFlightMapper.toEntity(optDto);
+                    scaf.setFlight(saved);
+
+                    SeatClassAirplane sca = seatClassAirplaneRepository.findById(optDto.getSeatClassAirplaneId())
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "SeatClassAirplane not found: " + optDto.getSeatClassAirplaneId()));
+                    scaf.setSeatClassAirplane(sca);
+
+                    SeatClassAirplaneFlight savedScaf = seatCAFRepository.save(scaf);
+                    return seatClassAirplaneFlightMapper.toResponse(savedScaf);
                 })
                 .collect(Collectors.toList());
 
-        FlightResponse flightResponse = flightMapper.toResponse(savedFlight);
-        // 4. Gắn nested vào entity để mapper trả về
-        flightResponse.setTransits(savedTransits);
-        flightResponse.setSeatOptions(savedSeatOptions);
-
-        // 5. Map trả về DTO
-        return flightResponse;
+        // 6. Build response
+        FlightResponse resp = flightMapper.toResponse(saved);
+        resp.setTransits(transits);
+        resp.setSeatOptions(seatOpts);
+        return resp;
     }
 
     @Transactional
     public FlightResponse updateFlight(Long id, FlightRequest request) {
-        // 1. Lấy Flight cũ
+        // 1. Lấy cũ
         Flight flight = flightRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found: " + id));
 
-        // 2. Cập nhật field cơ bản
+        // 2. Cập nhật trường cơ bản
         flight.setFlightNumber(request.getFlightNumber());
         flight.setDepartureTime(request.getDepartureTime());
         flight.setArrivalTime(request.getArrivalTime());
         flight.setStatus(request.getStatus());
-        // (nếu đổi airplane/origin/destination thì cập nhật thêm)
 
-        Flight updatedFlight = flightRepository.save(flight);
+        // 3. Cập nhật quan hệ nếu thay đổi
+        if (!flight.getAirplane().getId().equals(request.getAirplaneId())) {
+            flight.setAirplane(
+                    airplaneRepository.findById(request.getAirplaneId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Airplane not found: " + request.getAirplaneId()))
+            );
+        }
+        if (!flight.getOriginAirport().getId().equals(request.getOriginAirportId())) {
+            flight.setOriginAirport(
+                    airportRepository.findById(request.getOriginAirportId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Airport not found: " + request.getOriginAirportId()))
+            );
+        }
+        if (!flight.getDestinationAirport().getId().equals(request.getDestinationAirportId())) {
+            flight.setDestinationAirport(
+                    airportRepository.findById(request.getDestinationAirportId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Airport not found: " + request.getDestinationAirportId()))
+            );
+        }
 
-        // 3. Xóa nested cũ
-        transitRepository.deleteByFlightId(updatedFlight.getId());
-        seatCAFRepository.deleteByFlightId(updatedFlight.getId());
+        // 4. Save chính
+        Flight updated = flightRepository.save(flight);
 
-        // 4. Tạo lại nested mới (giống create)
+        // 5. Xóa nested cũ
+        transitRepository.deleteByFlightId(updated.getId());
+        seatCAFRepository.deleteByFlightId(updated.getId());
+
+        // 6. Tạo nested mới giống create
         List<TransitResponse> newTransits = request.getTransits().stream()
-                .map(tr -> {
-                    Transit entity = transitMapper.toEntity(tr);
-                    entity.setFlight(updatedFlight);
-                    return transitMapper.toResponse(transitRepository.save(entity));
-                })
-                .collect(Collectors.toList());
+                .map(trDto -> {
+                    Transit tr = transitMapper.toEntity(trDto);
+                    tr.setFlight(updated);
 
-        List<SeatClassAirplaneFlightResponse> newSeatOptions = request.getSeatOptions().stream()
-                .map(opt -> {
-                    SeatClassAirplaneFlight entity = seatClassAirplaneFlightMapper.toEntity(opt);
-                    entity.setFlight(updatedFlight);
-                    return seatClassAirplaneFlightMapper.toResponse(seatCAFRepository.save(entity));
-                })
-                .collect(Collectors.toList());
+                    Airport ap = airportRepository.findById(trDto.getAirportId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Airport not found: " + trDto.getAirportId()));
+                    tr.setTransitAirport(ap);
 
-        FlightResponse flightResponse = flightMapper.toResponse(updatedFlight);
-        flightResponse.setTransits(newTransits);
-        flightResponse.setSeatOptions(newSeatOptions);
+                    return transitMapper.toResponse(transitRepository.save(tr));
+                }).collect(Collectors.toList());
 
-        return flightResponse;
+        List<SeatClassAirplaneFlightResponse> newSeatOpts = request.getSeatOptions().stream()
+                .map(optDto -> {
+                    SeatClassAirplaneFlight scaf = seatClassAirplaneFlightMapper.toEntity(optDto);
+                    scaf.setFlight(updated);
+
+                    SeatClassAirplane sca = seatClassAirplaneRepository.findById(optDto.getSeatClassAirplaneId())
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "SeatClassAirplane not found: " + optDto.getSeatClassAirplaneId()));
+                    scaf.setSeatClassAirplane(sca);
+
+                    return seatClassAirplaneFlightMapper.toResponse(seatCAFRepository.save(scaf));
+                }).collect(Collectors.toList());
+
+        // 7. Build response
+        FlightResponse resp = flightMapper.toResponse(updated);
+        resp.setTransits(newTransits);
+        resp.setSeatOptions(newSeatOpts);
+        return resp;
     }
 
+    @Transactional
     public ApiResponse<Void> deleteFlight(Long id) {
         if (!flightRepository.existsById(id)) {
             throw new ResourceNotFoundException("Flight not found with id: " + id);
@@ -127,6 +191,7 @@ public class FlightService {
         transitRepository.deleteByFlightId(id);
         seatCAFRepository.deleteByFlightId(id);
         flightRepository.deleteById(id);
+
         return new ApiResponse<>(true, "Flight deleted successfully", null);
     }
 
