@@ -1,5 +1,6 @@
 package com.example.flight_reservation.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.example.flight_reservation.entity.enums.BookingStatus;
@@ -18,6 +19,9 @@ public class Booking {
   @ManyToOne
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
+
+  @Column(name = "total_price", precision = 10, scale = 2)
+  private BigDecimal totalPrice;
 
   @Column(name = "booking_date")
   private LocalDateTime bookingDate;

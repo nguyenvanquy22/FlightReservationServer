@@ -6,25 +6,31 @@ import com.example.flight_reservation.dto.response.BookingResponse;
 import com.example.flight_reservation.dto.response.PassengerResponse;
 import com.example.flight_reservation.dto.response.TicketResponse;
 import com.example.flight_reservation.entity.*;
+import com.example.flight_reservation.entity.enums.PaymentStatus;
 import com.example.flight_reservation.exception.ResourceNotFoundException;
 import com.example.flight_reservation.mapper.BookingMapper;
 import com.example.flight_reservation.dto.response.ApiResponse;
 import com.example.flight_reservation.mapper.PassengerMapper;
+import com.example.flight_reservation.mapper.PaymentMapper;
 import com.example.flight_reservation.mapper.TicketMapper;
 import com.example.flight_reservation.repository.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class BookingService {
 
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
     @Autowired
     private BookingRepository bookingRepository;
 
@@ -49,6 +55,12 @@ public class BookingService {
     @Autowired
     private SeatClassAirplaneFlightRepository scafRepository;
 
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
+    private PaymentMapper paymentMapper;
+
     // Create Booking
     @Transactional
     public BookingResponse createBooking(BookingRequest request) {
@@ -57,6 +69,7 @@ public class BookingService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + request.getUserId()));
         booking.setUser(user);
+        booking.setTotalPrice(request.getTotalPrice());
         booking.setBookingDate(LocalDateTime.now());
         booking = bookingRepository.save(booking);
 
@@ -87,13 +100,26 @@ public class BookingService {
             }
         }
 
-        // 4. Chuẩn bị response DTO (ví dụ)
+        // 4. Tạo Payment record mặc định PENDING
+        Payment payment = new Payment();
+        payment.setBooking(booking);
+        payment.setAmount(request.getTotalPrice());
+        payment.setPaymentDate(LocalDateTime.now());
+        payment.setPaymentMethod("VNPAY");             // hoặc null chờ callback
+        payment.setTransactionId(null);
+        payment.setStatus(PaymentStatus.PENDING);
+        payment = paymentRepository.save(payment);
+
+        // 5. Build response
         BookingResponse response = bookingMapper.toResponse(booking);
+        response.setTotalPrice(booking.getTotalPrice());
         response.setTickets(
                 tickets.stream()
                         .map(ticketMapper::toResponse)
                         .collect(Collectors.toList())
         );
+        // Bao gồm luôn thông tin payment
+        response.setPayment(paymentMapper.toResponse(payment));
 
         return response;
     }

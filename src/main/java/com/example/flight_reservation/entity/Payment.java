@@ -16,7 +16,7 @@ public class Payment {
   @Column(name = "payment_id")
   private Long id;
 
-  @ManyToOne
+  @OneToOne
   @JoinColumn(name = "booking_id", nullable = false)
   private Booking booking;
 
