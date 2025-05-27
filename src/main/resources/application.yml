@@ -13,10 +13,9 @@ app:
   payment:
     vnPay:
       url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-      tmnCode: MDQL034X
-      secretKey: 0LW4WHTIO5U5C1900B6GZL0EYT5G00OO
-      #      returnUrl: http://localhost:8080/api/vnpay/vnpay-callback
-      returnUrl: http://localhost:3000/success
+      tmnCode: BVE8BMH9
+      secretKey: PYXFIG8OJXNULBF39N470EZ1684K306T
+      returnUrl: http://localhost:8080/api/payments/vn-pay-callback
       version: 2.1.0
       command: pay
       orderType: other

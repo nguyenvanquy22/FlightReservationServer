@@ -69,10 +69,9 @@ public class PaymentController {
 
         String targetUrl;
         if (ok) {
-//            targetUrl = "https://your-frontend.com/payment-success?bookingId=" + bookingId;
-            targetUrl = "http://localhost:3000/success";
+            targetUrl = "http://localhost:3000/booking-success?bookingId=" + bookingId;
         } else {
-            targetUrl = "https://your-frontend.com/payment-fail?bookingId=" + bookingId;
+            targetUrl = "http://localhost:3000/booking-fail";
         }
 
         RedirectView rv = new RedirectView();

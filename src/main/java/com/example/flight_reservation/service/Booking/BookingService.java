@@ -44,6 +44,9 @@ public class BookingService {
     private TicketMapper ticketMapper;
 
     @Autowired
+    private FlightRepository flightRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -88,10 +91,14 @@ public class BookingService {
                 SeatClassAirplaneFlight scaf = scafRepository.findById(fb.getSeatOptionId())
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "SeatClassAirplaneFlight not found: " + fb.getSeatOptionId()));
+                Flight flight = flightRepository.findById(fb.getFlightId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Flight not found: " + fb.getFlightId()));
                 Ticket ticket = new Ticket();
                 ticket.setBooking(booking);
                 ticket.setPassenger(passenger);
                 ticket.setSeatClassAirplaneFlight(scaf);
+                ticket.setFlight(flight);
                 // Gán giá từ entity SCAF
                 ticket.setPrice(scaf.getSeatPrice());
                 // Nếu cần sinh số ghế, có thể đặt null hoặc generate
@@ -125,51 +132,95 @@ public class BookingService {
     }
 
     // Update Booking
+    @Transactional
     public BookingResponse updateBooking(Long id, BookingRequest request) {
+        // Chỉ cho phép update status hoặc totalPrice
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
-        // Cập nhật các trường theo request
-        // Nếu BookingRequest có thêm thông tin về user, cập nhật quan hệ theo nghiệp vụ (ví dụ: thông qua user id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + id));
+        booking.setTotalPrice(request.getTotalPrice());
+        // Có thể cho update status nếu cần:
+        booking.setStatus(request.getStatus());
         booking = bookingRepository.save(booking);
-        return bookingMapper.toResponse(booking);
+
+        // Build lại DTO
+        BookingResponse resp = bookingMapper.toResponse(booking);
+        resp.setTotalPrice(booking.getTotalPrice());
+        // map nested tickets
+        List<TicketResponse> tickets = ticketRepository.findByBookingId(id).stream()
+                .map(ticketMapper::toResponse)
+                .collect(Collectors.toList());
+        resp.setTickets(tickets);
+        // map payment
+        paymentRepository.findByBookingId(id)
+                .ifPresent(p -> resp.setPayment(paymentMapper.toResponse(p)));
+
+        return resp;
     }
 
-    // Delete Booking
+    @Transactional
     public ApiResponse<Void> deleteBooking(Long id) {
         if (!bookingRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Booking not found with id: " + id);
+            throw new ResourceNotFoundException("Booking not found: " + id);
         }
+        // 1. xóa tickets
+        ticketRepository.deleteByBookingId(id);
+        // 2. xóa payment
+        paymentRepository.findByBookingId(id)
+                .ifPresent(paymentRepository::delete);
+        // 3. xóa booking
         bookingRepository.deleteById(id);
-        return new ApiResponse<>(true, "Booking deleted successfully", null);
+        return new ApiResponse<>(true, "Booking and related records deleted", null);
     }
 
-    // Get Booking by ID, kèm tickets
+    public List<BookingResponse> getAllBookings() {
+        return bookingRepository.findAll().stream()
+                .map(booking -> {
+                    BookingResponse resp = bookingMapper.toResponse(booking);
+                    resp.setTotalPrice(booking.getTotalPrice());
+                    List<TicketResponse> tickets = ticketRepository.findByBookingId(booking.getId()).stream()
+                            .map(ticketMapper::toResponse)
+                            .collect(Collectors.toList());
+                    resp.setTickets(tickets);
+                    paymentRepository.findByBookingId(booking.getId())
+                            .ifPresent(p -> resp.setPayment(paymentMapper.toResponse(p)));
+                    return resp;
+                })
+                .collect(Collectors.toList());
+    }
+
     public BookingResponse getBookingById(Long id) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
-        BookingResponse resp = bookingMapper.toResponse(booking);
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + id));
 
-        // load và map tickets
+        BookingResponse resp = bookingMapper.toResponse(booking);
+        resp.setTotalPrice(booking.getTotalPrice());
         List<TicketResponse> tickets = ticketRepository.findByBookingId(id).stream()
                 .map(ticketMapper::toResponse)
                 .collect(Collectors.toList());
         resp.setTickets(tickets);
 
+        paymentRepository.findByBookingId(id)
+                .ifPresent(p -> resp.setPayment(paymentMapper.toResponse(p)));
+
         return resp;
     }
 
-    // Get All Bookings, kèm tickets cho mỗi booking
-    public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream().map(booking -> {
+    public List<BookingResponse> getBookingsByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        List<Booking> bookings = bookingRepository.findByUser(user);
+        return bookings.stream().map(booking -> {
             BookingResponse resp = bookingMapper.toResponse(booking);
-
-            List<TicketResponse> tickets = ticketRepository.findByBookingId(booking.getId()).stream()
-                    .map(ticketMapper::toResponse)
-                    .collect(Collectors.toList());
-            resp.setTickets(tickets);
-
+            resp.setTotalPrice(booking.getTotalPrice());
+            resp.setTickets(
+                    ticketRepository.findByBookingId(booking.getId())
+                            .stream().map(ticketMapper::toResponse)
+                            .collect(Collectors.toList())
+            );
+            paymentRepository.findByBookingId(booking.getId())
+                    .ifPresent(p -> resp.setPayment(paymentMapper.toResponse(p)));
             return resp;
         }).collect(Collectors.toList());
     }
-
 }

@@ -13,7 +13,6 @@ public class Passenger {
   @Column(name = "passenger_id")
   private Long id;
 
-  // Sửa "fist_name" thành "first_name"
   @Column(name = "first_name", length = 50)
   private String firstName;
 

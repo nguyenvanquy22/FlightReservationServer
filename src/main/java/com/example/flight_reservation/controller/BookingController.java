@@ -56,4 +56,14 @@ public class BookingController {
         ApiResponse<List<BookingResponse>> apiResponse = new ApiResponse<>(true, "Bookings retrieved successfully", responses);
         return ResponseEntity.ok(apiResponse);
     }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getByUserId(
+            @PathVariable Long userId) {
+
+        List<BookingResponse> list = bookingService.getBookingsByUserId(userId);
+        ApiResponse<List<BookingResponse>> resp =
+                new ApiResponse<>(true, "Bookings for user retrieved successfully", list);
+        return ResponseEntity.ok(resp);
+    }
 }

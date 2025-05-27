@@ -13,4 +13,5 @@ public class BookingRequest {
   private BigDecimal totalPrice;
   private List<PassengerRequest> passengersRequest;
   private List<FlightBookingRequest> flightBookingRequests;
+  private BookingStatus status;
 }

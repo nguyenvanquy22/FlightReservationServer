@@ -25,6 +25,10 @@ public class Ticket {
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 
+    @ManyToOne
+    @JoinColumn(name = "flight_id", nullable = false)
+    private Flight flight;
+
     @Column(name = "seat_number", length = 10)
     private String seatNumber;
 
