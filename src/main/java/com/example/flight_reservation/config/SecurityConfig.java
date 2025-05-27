@@ -1,5 +1,6 @@
 package com.example.flight_reservation.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,65 +19,56 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private JwtFilter jwtFilter;
+    @Autowired
+    private UserDetailsService myUserDetailsService;
+
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public AuthenticationProvider authenticationProvider(PasswordEncoder encoder) {
+        DaoAuthenticationProvider p = new DaoAuthenticationProvider();
+        p.setUserDetailsService(myUserDetailsService);
+        p.setPasswordEncoder(encoder);
+        return p;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-//                .cors(cors -> cors.configurationSource(request -> {
-//                    CorsConfiguration config = new CorsConfiguration();
-//                    config.applyPermitDefaultValues();
-//                    return config;
-//                }))
-                .cors(cors -> cors.configurationSource(request -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOriginPatterns(List.of("*"));
-                    config.setAllowedMethods(List.of("*"));
-                    config.setAllowedHeaders(List.of("*"));
-                    config.setAllowCredentials(true);
-                    return config;
-                }))
-                .csrf(AbstractHttpConfigurer::disable).
-                authorizeHttpRequests(request -> request
-                                .anyRequest().permitAll()
-//                        .requestMatchers("login", "register","/api/users/add").permitAll()
-//                        .requestMatchers(HttpMethod.PUT,"/api/users/{id}").permitAll()
-//                        .requestMatchers(HttpMethod.GET,"/api/aircraft/","/api/airlines/","/api/airports/","/api/bookings/","/api/flights/","/api/users/").hasAnyRole("CUSTOMER", "ADMIN")
-//                        .requestMatchers(HttpMethod.POST,"api/bookings/add","/api/users/add").hasRole("CUSTOMER")
-//                        .requestMatchers(HttpMethod.POST).hasRole("ADMIN")
-//                        .requestMatchers(HttpMethod.DELETE).hasRole("ADMIN")
-//                        .requestMatchers(HttpMethod.PUT).hasRole("ADMIN")
-//                        .anyRequest().authenticated()
-                ).
-                httpBasic(Customizer.withDefaults()).
-                sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .build();
+        http
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // cho phép public
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // tài nguyên chung cho cả 2
+                        .requestMatchers(HttpMethod.GET, "/api/flights/**", "/api/airports/**", "/api/seat-classes/**").hasAnyRole("CUSTOMER","ADMIN")
+                        // chỉ CUSTOMER được book
+                        .requestMatchers(HttpMethod.POST, "/api/bookings/**").hasRole("CUSTOMER")
+                        // chỉ ADMIN CRUD
+                        .requestMatchers("/api/airlines/**", "/api/airplanes/**", "/api/users/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .authenticationProvider(authenticationProvider(passwordEncoder()))
+                // đặt JwtFilter trước UsernamePasswordAuthenticationFilter
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
+
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000","http://localhost:4000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
-        configuration.setExposedHeaders(List.of("x-auth-token"));
-        configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

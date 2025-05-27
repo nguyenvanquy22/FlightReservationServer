@@ -2,10 +2,8 @@ package com.example.flight_reservation.controller;
 
 import com.example.flight_reservation.dto.request.AuthRequest;
 import com.example.flight_reservation.dto.response.AuthResponse;
-import com.example.flight_reservation.dto.response.ApiResponse;
 import com.example.flight_reservation.service.User.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,17 +16,15 @@ public class AuthController {
 
     // Endpoint đăng nhập
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody AuthRequest authRequest) {
-        AuthResponse response = authService.login(authRequest);
-        ApiResponse<AuthResponse> apiResponse = new ApiResponse<>(true, "Login successful", response);
-        return ResponseEntity.ok(apiResponse);
+    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest req) {
+        AuthResponse resp = authService.login(req);
+        return ResponseEntity.ok(resp);
     }
 
     // Endpoint đăng ký
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@RequestBody AuthRequest authRequest) {
-        AuthResponse response = authService.register(authRequest);
-        ApiResponse<AuthResponse> apiResponse = new ApiResponse<>(true, "Registration successful", response);
-        return ResponseEntity.status(HttpStatus.CREATED).body(apiResponse);
+    public ResponseEntity<AuthResponse> register(@RequestBody AuthRequest req) {
+        AuthResponse resp = authService.register(req);
+        return ResponseEntity.status(201).body(resp);
     }
 }
