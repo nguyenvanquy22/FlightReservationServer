@@ -91,14 +91,14 @@ public class BookingService {
                 SeatClassAirplaneFlight scaf = scafRepository.findById(fb.getSeatOptionId())
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "SeatClassAirplaneFlight not found: " + fb.getSeatOptionId()));
-//                Flight flight = flightRepository.findById(fb.getFlightId())
-//                        .orElseThrow(() -> new ResourceNotFoundException(
-//                                "Flight not found: " + fb.getFlightId()));
+                Flight flight = flightRepository.findById(fb.getFlightId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Flight not found: " + fb.getFlightId()));
                 Ticket ticket = new Ticket();
                 ticket.setBooking(booking);
                 ticket.setPassenger(passenger);
                 ticket.setSeatClassAirplaneFlight(scaf);
-//                ticket.setFlight(flight);
+                ticket.setFlight(flight);
                 // Gán giá từ entity SCAF
                 ticket.setPrice(scaf.getSeatPrice());
                 // Nếu cần sinh số ghế, có thể đặt null hoặc generate
