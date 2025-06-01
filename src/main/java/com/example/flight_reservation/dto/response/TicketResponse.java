@@ -8,8 +8,10 @@ import lombok.Data;
 public class TicketResponse {
     private Long id;
     private Long seatClassAirplaneFlightId;
+    private String seatClassName;
     private PassengerResponse passenger;
     private Long bookingId;
+    private String flightNumber;
     private String seatNumber;
     private BigDecimal price;
     private List<LuggageResponse> luggages;

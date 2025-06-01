@@ -10,5 +10,7 @@ import org.mapstruct.Mapping;
 public interface TicketMapper {
     Ticket toEntity(TicketRequest dto);
     @Mapping(target = "seatClassAirplaneFlightId", source = "seatClassAirplaneFlight.id")
+    @Mapping(target = "seatClassName", source = "seatClassAirplaneFlight.seatClassAirplane.seatClass.name")
+    @Mapping(target = "flightNumber", source = "flight.flightNumber")
     TicketResponse toResponse(Ticket entity);
 }
