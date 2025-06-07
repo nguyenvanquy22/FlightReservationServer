@@ -9,4 +9,5 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findByBookingId(Long bookingId);
     void deleteByBookingId(Long bookingId);
     int countBySeatClassAirplaneFlightIdAndSeatNumberIsNotNull(Long id);
+    List<Ticket> findBySeatClassAirplaneFlight_Id(Long seatClassAirplaneFlightId);
 }

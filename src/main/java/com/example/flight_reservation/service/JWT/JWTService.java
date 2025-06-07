@@ -20,7 +20,7 @@ public class JWTService {
     @Value("${jwt.secret}")
     private String base64Secret;
 
-    private final long expirationMs = 30 * 60 * 1000;
+    private final long expirationMs = 24 * 60 * 60 * 1000;
 
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(base64Secret);

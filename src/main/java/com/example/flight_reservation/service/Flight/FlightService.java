@@ -5,6 +5,7 @@ import com.example.flight_reservation.dto.response.FlightResponse;
 import com.example.flight_reservation.dto.response.SeatClassAirplaneFlightResponse;
 import com.example.flight_reservation.dto.response.TransitResponse;
 import com.example.flight_reservation.entity.*;
+import com.example.flight_reservation.entity.enums.BookingStatus;
 import com.example.flight_reservation.exception.ResourceNotFoundException;
 import com.example.flight_reservation.mapper.FlightMapper;
 import com.example.flight_reservation.dto.response.ApiResponse;
@@ -45,6 +46,9 @@ public class FlightService {
 
     @Autowired private AirplaneRepository airplaneRepository;
     @Autowired private AirportRepository airportRepository;
+
+    @Autowired
+    private TicketRepository ticketRepository;
 
     @Transactional
     public FlightResponse createFlight(FlightRequest request) {
@@ -227,9 +231,28 @@ public class FlightService {
                     .collect(Collectors.toList());
             resp.setTransits(transits);
 
-            List<SeatClassAirplaneFlightResponse> seatOptions = seatCAFRepository.findByFlightId(flight.getId()).stream()
-                    .map(seatClassAirplaneFlightMapper::toResponse)
+            List<SeatClassAirplaneFlightResponse> seatOptions = seatCAFRepository
+                    .findByFlightId(flight.getId()).stream()
+                    .map(entity -> {
+                        // Map cơ bản
+                        SeatClassAirplaneFlightResponse dto = seatClassAirplaneFlightMapper.toResponse(entity);
+
+                        SeatClassAirplane sca = entity.getSeatClassAirplane();
+                        // Tổng số ghế của class này trên chuyến bay
+                        int totalSeats = sca.getRowCount() * sca.getColumnCount();
+
+                        // Đếm vé đã đặt (BookingStatus.CONFIRMED)
+                        long bookedCount = ticketRepository
+                                .findBySeatClassAirplaneFlight_Id(entity.getId()).stream()
+                                .filter(t -> t.getBooking().getStatus() == BookingStatus.CONFIRMED)
+                                .count();
+
+                        // Tính availableSeats
+                        dto.setAvailableSeats(totalSeats - (int) bookedCount);
+                        return dto;
+                    })
                     .collect(Collectors.toList());
+
             resp.setSeatOptions(seatOptions);
 
             return resp;
