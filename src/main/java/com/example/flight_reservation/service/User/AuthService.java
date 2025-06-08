@@ -39,7 +39,7 @@ public class AuthService {
                         "User not found with username: " + req.getUsername()));
 
         // 3. Sinh JWT token
-        UserDetails ud = userDetailsService.loadUserByUsername(u.getEmail());
+        UserDetails ud = userDetailsService.loadUserByUsername(u.getUsername());
         String token = jwtService.generateToken(ud);
 
         AuthResponse resp = new AuthResponse();
