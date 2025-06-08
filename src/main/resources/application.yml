@@ -1,16 +1,26 @@
 spring:
   application:
     name: Flight_reservation
-  jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-    hibernate:
-      ddl-auto: update
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 1
+      connection-timeout: 30000    # ms
+      idle-timeout: 600000         # ms
+      max-lifetime: 1800000        # ms
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
 
 app:
   payment:
@@ -18,7 +28,7 @@ app:
       url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
       tmnCode: ${VNPAY_TMNCODE}
       secretKey: ${VNPAY_KEY}
-      returnUrl: http://localhost:8080/api/payments/vn-pay-callback
+      returnUrl: ${DOMAIN_NAME}/api/payments/vn-pay-callback
       version: 2.1.0
       command: pay
       orderType: other
