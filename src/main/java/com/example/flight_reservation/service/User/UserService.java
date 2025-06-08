@@ -4,14 +4,15 @@ import com.example.flight_reservation.dto.request.UserRequest;
 import com.example.flight_reservation.dto.response.UserResponse;
 import com.example.flight_reservation.entity.User;
 import com.example.flight_reservation.exception.ResourceNotFoundException;
-import com.example.flight_reservation.mapper.UserMapper;
 import com.example.flight_reservation.dto.response.ApiResponse;
+import com.example.flight_reservation.mapper.UserMapper;
 import com.example.flight_reservation.repository.UserRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,6 +23,8 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private UserMapper userMapper;
+
+//    @Autowired private PasswordEncoder passwordEncoder;
 
     // Create User
     public UserResponse createUser(UserRequest request) {
@@ -35,8 +38,15 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword()); // Nếu cần, mã hóa mật khẩu trước khi lưu
-        user.setRole(request.getRole());
+//        if (request.getPassword() != null) {
+//            user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        }
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        if (request.getRole() != null) {
+            user.setRole(request.getRole());
+        }
         user = userRepository.save(user);
         return userMapper.toResponse(user);
     }
@@ -66,8 +76,8 @@ public class UserService implements UserDetailsService {
     }
 
     @Override
-    public User loadUserByUsername(String email) throws UsernameNotFoundException {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+    public User loadUserByUsername(String username) throws UsernameNotFoundException {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
     }
 }

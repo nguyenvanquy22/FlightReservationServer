@@ -1,6 +1,7 @@
 package com.example.flight_reservation.controller;
 
 import com.example.flight_reservation.dto.request.AuthRequest;
+import com.example.flight_reservation.dto.request.UserRequest;
 import com.example.flight_reservation.dto.response.AuthResponse;
 import com.example.flight_reservation.service.User.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,7 @@ public class AuthController {
 
     // Endpoint đăng ký
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody AuthRequest req) {
+    public ResponseEntity<AuthResponse> register(@RequestBody UserRequest req) {
         AuthResponse resp = authService.register(req);
         return ResponseEntity.status(201).body(resp);
     }

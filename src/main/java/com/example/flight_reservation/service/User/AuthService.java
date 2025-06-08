@@ -1,6 +1,7 @@
 package com.example.flight_reservation.service.User;
 
 import com.example.flight_reservation.dto.request.AuthRequest;
+import com.example.flight_reservation.dto.request.UserRequest;
 import com.example.flight_reservation.dto.response.AuthResponse;
 import com.example.flight_reservation.entity.User;
 import com.example.flight_reservation.entity.enums.UserRole;
@@ -29,13 +30,13 @@ public class AuthService {
     public AuthResponse login(AuthRequest req) {
         // 1. Xác thực credentials
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
+                new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword())
         );
 
         // 2. Load lại thông tin user
-        User u = userRepository.findByEmail(req.getEmail())
+        User u = userRepository.findByUsername(req.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found with email: " + req.getEmail()));
+                        "User not found with username: " + req.getUsername()));
 
         // 3. Sinh JWT token
         UserDetails ud = userDetailsService.loadUserByUsername(u.getEmail());
@@ -48,18 +49,17 @@ public class AuthService {
     }
 
     // Đăng ký
-    public AuthResponse register(AuthRequest req) {
-        if (userRepository.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("Email already exists");
+    public AuthResponse register(UserRequest req) {
+        if (userRepository.existsByUsername(req.getUsername())) {
+            throw new RuntimeException("Username already exists");
         }
-        User u = new User();
-        u.setEmail(req.getEmail());
+        User u = userMapper.toEntity(req);
         u.setPassword(passwordEncoder.encode(req.getPassword()));
         u.setRole(req.getRole() != null ? req.getRole() : UserRole.CUSTOMER);
         u = userRepository.save(u);
 
         // Sinh JWT token
-        UserDetails ud = userDetailsService.loadUserByUsername(u.getEmail());
+        UserDetails ud = userDetailsService.loadUserByUsername(u.getUsername());
         String token = jwtService.generateToken(ud);
 
         AuthResponse resp = new AuthResponse();
