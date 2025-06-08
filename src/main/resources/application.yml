@@ -2,6 +2,9 @@ spring:
   application:
     name: Flight_reservation
   jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: update
   datasource:
