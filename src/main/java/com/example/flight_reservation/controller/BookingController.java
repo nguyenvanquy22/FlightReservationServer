@@ -3,6 +3,7 @@ package com.example.flight_reservation.controller;
 import com.example.flight_reservation.dto.request.BookingRequest;
 import com.example.flight_reservation.dto.response.BookingResponse;
 import com.example.flight_reservation.dto.response.ApiResponse;
+import com.example.flight_reservation.entity.enums.BookingStatus;
 import com.example.flight_reservation.service.Booking.BookingService;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,9 +60,9 @@ public class BookingController {
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getByUserId(
-            @PathVariable Long userId) {
+            @PathVariable Long userId, @RequestParam(required = false) BookingStatus bookingStatus) {
 
-        List<BookingResponse> list = bookingService.getBookingsByUserId(userId);
+        List<BookingResponse> list = bookingService.getBookingsByUserId(userId, bookingStatus);
         ApiResponse<List<BookingResponse>> resp =
                 new ApiResponse<>(true, "Bookings for user retrieved successfully", list);
         return ResponseEntity.ok(resp);

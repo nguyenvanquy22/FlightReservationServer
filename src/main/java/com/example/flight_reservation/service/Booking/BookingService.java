@@ -6,6 +6,7 @@ import com.example.flight_reservation.dto.response.BookingResponse;
 import com.example.flight_reservation.dto.response.PassengerResponse;
 import com.example.flight_reservation.dto.response.TicketResponse;
 import com.example.flight_reservation.entity.*;
+import com.example.flight_reservation.entity.enums.BookingStatus;
 import com.example.flight_reservation.entity.enums.PaymentStatus;
 import com.example.flight_reservation.exception.ResourceNotFoundException;
 import com.example.flight_reservation.mapper.BookingMapper;
@@ -205,11 +206,14 @@ public class BookingService {
         return resp;
     }
 
-    public List<BookingResponse> getBookingsByUserId(Long userId) {
+    public List<BookingResponse> getBookingsByUserId(Long userId, BookingStatus bookingStatus) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
-        List<Booking> bookings = bookingRepository.findByUser(user);
+        List<Booking> bookings = (bookingStatus != null)
+                ? bookingRepository.findByUserAndStatus(user, bookingStatus)
+                : bookingRepository.findByUser(user);
+
         return bookings.stream().map(booking -> {
             BookingResponse resp = bookingMapper.toResponse(booking);
             resp.setTotalPrice(booking.getTotalPrice());
