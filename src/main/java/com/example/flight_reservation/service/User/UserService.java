@@ -38,9 +38,6 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setEmail(request.getEmail());
-//        if (request.getPassword() != null) {
-//            user.setPassword(passwordEncoder.encode(request.getPassword()));
-//        }
         user.setPhoneNumber(request.getPhoneNumber());
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());

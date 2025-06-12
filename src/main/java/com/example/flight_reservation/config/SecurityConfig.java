@@ -65,6 +65,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/payments/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/users/{id}").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/bookings/user/{id}", "/api/bookings/{id}", "/api/users/{id}", "/api/payments/**", "/api/flights/**", "/api/airports/**", "/api/seat-classes/**").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/bookings", "/api/bookings/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/**").hasRole("ADMIN")
